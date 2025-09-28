@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  story-bible-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8015:8015"
+      - "9015:9015"  # Metrics port
+    environment:
+      - PORT=8015
+      - HOST=0.0.0.0
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://story_bible_user:story_bible_password@story-bible-db:5432/story_bible_db
+      - BRAIN_SERVICE_URL=http://host.docker.internal:8002
+      - BRAIN_SERVICE_WS_URL=ws://host.docker.internal:8002/mcp
+    depends_on:
+      - story-bible-db
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - story-bible-network
+
+  story-bible-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: story_bible_user
+      POSTGRES_PASSWORD: story_bible_password
+      POSTGRES_DB: story_bible_db
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - story_bible_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - story-bible-network
+
+volumes:
+  story_bible_data:
+
+networks:
+  story-bible-network:
+    driver: bridge
